@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import Image from "next/image";
@@ -79,9 +79,16 @@ const createUploadSchema = (isUpdate) => z
     );
 
 // ---------------------------------------------------------------------------
-// Component
+// Loading Fallback
 // ---------------------------------------------------------------------------
-export default function UploadContentPage() {
+function LoadingFallback() {
+    return <div className="p-10 text-center text-muted-foreground">Loading...</div>;
+}
+
+// ---------------------------------------------------------------------------
+// Client Component
+// ---------------------------------------------------------------------------
+function UploadContentPageClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const contentId = searchParams.get("contentId");
@@ -349,5 +356,16 @@ export default function UploadContentPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Export with Suspense wrapper
+// ---------------------------------------------------------------------------
+export default function UploadContentPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <UploadContentPageClient />
+        </Suspense>
     );
 }
