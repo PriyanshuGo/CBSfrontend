@@ -1,8 +1,8 @@
 import { publicAxios, privateAxios } from "./axiosInstance";
 
 const axiosBaseQuery =
-    ({ usePrivate = false } = {}) =>
-        async ({ url, method, data, params }) => {
+    () =>
+        async ({ url, method, data, params, usePrivate = false }) => {
             try {
 
                 const axiosInstance = usePrivate
