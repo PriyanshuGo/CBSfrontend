@@ -52,6 +52,10 @@ export default function LoginPage() {
             } = response;
 
             setAccessToken(accessToken);
+            localStorage.setItem(
+                "user",
+                JSON.stringify(user)
+            );
 
             dispatch(
                 setCredentials({
