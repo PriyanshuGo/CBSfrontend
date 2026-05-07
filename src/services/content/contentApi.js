@@ -78,6 +78,40 @@ export const contentApi = apiSlice.injectEndpoints({
 
             invalidatesTags: ["Content"],
         }),
+
+        getAllContents: builder.query({
+            query: ({ status, search, page = 1, limit = 10 }) => ({
+                url: "/content",
+                method: "GET",
+                params: {
+                    status,
+                    search,
+                    page,
+                    limit,
+                },
+                usePrivate: true,
+            }),
+            providesTags: ["Content"],
+        }),
+
+        approveContent: builder.mutation({
+            query: (contentId) => ({
+                url: `/approvals/approve/${contentId}`,
+                method: "PATCH",
+                usePrivate: true,
+            }),
+            invalidatesTags: ["Content"],
+        }),
+
+        rejectContent: builder.mutation({
+            query: ({ contentId, rejectionReason }) => ({
+                url: `/approvals/reject/${contentId}`,
+                method: "PATCH",
+                data: { rejectionReason },
+                usePrivate: true,
+            }),
+            invalidatesTags: ["Content"],
+        }),
     }),
 });
 
@@ -88,4 +122,7 @@ export const {
     useUpdateDraftContentMutation,
     useDeleteMyContentMutation,
     useRequestContentApprovalMutation,
+    useGetAllContentsQuery,
+    useApproveContentMutation,
+    useRejectContentMutation,
 } = contentApi;
