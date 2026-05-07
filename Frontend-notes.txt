@@ -1,0 +1,359 @@
+================================================================================
+CONTENT BROADCASTING SYSTEM (CBS) - FRONTEND DOCUMENTATION
+================================================================================
+
+PROJECT STRUCTURE
+================================================================================
+
+Framework & Setup:
+- Framework: Next.js 16.2.5 (App Router)
+- React Version: 19.2.4
+- Styling: Tailwind CSS 4 with shadcn/ui components
+- State Management: Redux Toolkit (v2.11.2) with RTK Query
+- Form Handling: React Hook Form (v7.75.0) with Zod validation
+- HTTP Client: Axios (v1.16.0)
+- UI Components: shadcn/ui, Lucide React icons
+
+Directory Organization:
+src/
+├── app/                           # Next.js App Router pages
+│   ├── layout.js                  # Root layout with Redux/Navbar
+│   ├── page.js                    # Home - redirects to /live
+│   ├── login/page.jsx             # Login page (public route)
+│   ├── live/page.jsx              # Live content viewer
+│   ├── principal/                 # Principal role dashboard
+│   │   └── dashboard/page.jsx
+│   └── teacher/                   # Teacher role dashboard
+│       ├── dashboard/page.jsx
+│       └── upload/page.js         # Content upload for teachers
+│
+├── components/                    # Reusable React components
+│   ├── layout/
+│   │   └── navbar.jsx             # Navigation bar with auth dropdown
+│   └── ui/                        # shadcn/ui component library
+│       ├── badge.jsx
+│       ├── button.jsx
+│       ├── card.jsx
+│       ├── dialog.jsx
+│       ├── dropdown-menu.jsx
+│       ├── input.jsx
+│       ├── label.jsx
+│       ├── select.jsx
+│       ├── skeleton.jsx
+│       ├── sonner.jsx
+│       ├── table.jsx
+│       └── textarea.jsx
+│
+├── features/                      # Redux slices (feature-based)
+│   └── auth/
+│       └── authSlice.js           # Auth state reducer
+│
+├── services/                      # API integration layer
+│   └── api/
+│       ├── apiSlice.js            # RTK Query setup
+│       ├── axiosInstance.js       # Axios config with interceptors
+│       ├── baseQuery.js           # Custom base query for RTK Query
+│   ├── auth/
+│   │   └── authApi.js             # Login/logout mutations
+│   ├── approval/
+│   │   └── approvalApi.js
+│   ├── content/
+│   │   └── contentApi.js
+│   └── live/
+│       └── liveApi.js
+│
+├── store/                         # Redux store configuration
+│   ├── store.js                   # Store setup & middleware
+│   └── ReduxProvider.jsx          # Redux Provider wrapper
+│
+├── utils/                         # Utility functions
+│   └── token.js                   # Token management helpers
+│
+├── lib/
+│   └── utils.js                   # General utilities
+│
+├── hooks/                         # Custom React hooks (empty)
+├── constants/                     # Application constants (empty)
+└── globals.css                    # Global styles
+
+
+AUTHENTICATION FLOW
+================================================================================
+
+1. Login Process:
+   - User enters email/password on /login page
+   - Credentials sent via useLoginMutation hook to POST /login
+   - API returns { accessToken, user: { role: { name: "principal|teacher" }, ... } }
+   - Token stored in localStorage via setAccessToken()
+   - User data stored in localStorage as JSON
+   - Redux auth state updated via setCredentials() action:
+     * state.user = user object
+     * state.accessToken = token
+     * state.isAuthenticated = true
+   - Conditional redirect based on user role:
+     * role === "principal" → /principal/dashboard
+     * role === "teacher" → /teacher/dashboard
+
+2. Token Management:
+   - Access token stored in localStorage
+   - Token utilities in src/utils/token.js:
+     * getAccessToken() - retrieves token from localStorage
+     * setAccessToken(token) - saves token to localStorage
+     * removeAccessToken() - clears token from localStorage
+   - Token automatically added to all authenticated API requests via axios interceptor
+
+3. Session Persistence:
+   - Token persists in localStorage across page reloads
+   - User data loaded from localStorage in navbar on mount
+   - Redux state lost on page reload (relies on localStorage for persistence)
+
+4. Logout Process:
+   - User clicks logout in navbar dropdown
+   - logoutApi() mutation called (POST /logout with token)
+   - removeAccessToken() clears token from localStorage
+   - localStorage.removeItem("user") clears user data
+   - Redux logout action resets auth state
+   - Browser redirected to /live (public page)
+
+5. Authentication State Source:
+   - Primary: Redux state (auth slice)
+   - Fallback: localStorage (for SSR/page reloads)
+   - Navbar checks both: isAuthenticated from Redux || mountedUser from localStorage
+
+
+ROLE-BASED ROUTING
+================================================================================
+
+1. User Roles:
+   - principal: School/institution administrator
+   - teacher: Content creator/uploader
+   - live: Public user (no authentication required)
+
+2. Route Structure:
+   - /live              → Public (everyone can access)
+   - /login             → Public (unauthenticated only)
+   - /principal/*       → Principal-only dashboard
+   - /teacher/*         → Teacher-only dashboard
+
+3. Implementation:
+   - No middleware protection currently implemented
+   - Role-based redirect happens AFTER login based on user.role.name
+   - Dashboard pages should implement role checks on load
+   - Protected routes rely on user being logged in to localStorage/Redux
+
+4. Route Hierarchy:
+   - Home (/) redirects to /live
+   - /live/page.jsx displays live content
+   - /login/page.jsx shows login form
+   - Role-specific dashboards branch from there
+
+5. Recommended Protections (NOT YET IMPLEMENTED):
+   - Should implement route guards in middleware
+   - Verify user role before rendering protected pages
+   - Redirect unauthorized access back to login
+
+
+API INTEGRATION APPROACH
+================================================================================
+
+1. Technology Stack:
+   - Redux Toolkit Query (RTK Query) - caching, synchronization
+   - Axios - HTTP client with interceptors
+   - Custom baseQuery for RTK Query using Axios
+
+2. API Architecture:
+   apiSlice (src/services/api/apiSlice.js):
+   - Creates RTK Query API object
+   - baseQuery: custom axios-based query function
+   - tagTypes: ["Auth", "Content", "Approval", "LiveContent"]
+   - endpoints: extended by feature-specific API files
+
+   Feature APIs (injectEndpoints):
+   - authApi.js: login, logout mutations
+   - contentApi.js: content CRUD operations
+   - approvalApi.js: content approval workflows
+   - liveApi.js: live streaming queries
+
+3. Axios Configuration (axiosInstance.js):
+   - Two instances:
+     * publicAxios: no authentication (login endpoint)
+     * privateAxios: includes Bearer token in Authorization header
+
+   - Base URL from env: NEXT_PUBLIC_API_BASE_URL
+   - Credentials: withCredentials=true (for cookies)
+
+4. Interceptors:
+   - Request interceptor (FormData handling):
+     * Removes Content-Type header for FormData
+     * Allows browser to set proper multipart/form-data boundary
+
+   - Request interceptor (privateAxios):
+     * Adds Authorization: Bearer {token} header
+     * Retrieves token from localStorage via getAccessToken()
+
+   - Response interceptor (private only, line 46+):
+     * Likely handles token refresh/expiry
+     * File truncated - check full axiosInstance.js
+
+5. API Query Pattern (RTK Query):
+   useLoginMutation() - returns [mutate, { isLoading }]
+   Example:
+   ```
+   const [login, { isLoading }] = useLoginMutation();
+   const response = await login(credentials).unwrap();
+   ```
+
+6. Error Handling:
+   - Wrapped in try/catch blocks
+   - Error?.data?.message parsed for API error messages
+   - Fallback error message: "Login failed"
+
+7. Tag Invalidation (Caching):
+   - Tags defined: Auth, Content, Approval, LiveContent
+   - After mutations, tags invalidated to refetch affected data
+   - Example: login mutation might invalidate "Content" tag to refresh user's content
+
+
+STATE MANAGEMENT APPROACH
+================================================================================
+
+1. Architecture: Redux Toolkit + RTK Query
+
+2. Store Setup (src/store/store.js):
+   - configureStore() from @reduxjs/toolkit
+   - Reducers:
+     * auth: authSlice reducer (user, token, isAuthenticated)
+     * [apiSlice.reducerPath]: apiSlice reducer (caching)
+   - Middleware:
+     * Default middleware + apiSlice.middleware (RTK Query)
+
+3. Auth Slice (src/features/auth/authSlice.js):
+   State shape:
+   {
+     auth: {
+       user: { id, name, email, role: { name: "principal|teacher" } } | null,
+       accessToken: string | null,
+       isAuthenticated: boolean
+     }
+   }
+
+   Reducers:
+   - setCredentials: stores user + token, sets isAuthenticated=true
+   - logout: clears all auth state
+
+4. API Slice (src/services/api/apiSlice.js):
+   - RTK Query API instance
+   - Manages request caching & synchronization
+   - Endpoints extended dynamically by feature APIs
+   - baseQuery: uses custom axios base query
+
+5. Access in Components:
+   - useSelector() to read state: const { user, isAuthenticated } = useSelector(state => state.auth)
+   - useDispatch() to update: dispatch(setCredentials(...))
+   - useLoginMutation() for API calls: const [login, { isLoading }] = useLoginMutation()
+
+6. Persistence Strategy:
+   - localStorage used for tokens + user data
+   - Redux state rehydrated from localStorage on app load
+   - Navbar component loads user from localStorage on mount (useEffect)
+
+7. Data Flow:
+   Login Page:
+   1. User submits form
+   2. useLoginMutation sends request → API
+   3. API returns token + user
+   4. Component saves token to localStorage
+   5. Component dispatches setCredentials() to Redux
+   6. Component navigates based on user.role
+
+   Protected Components:
+   1. useSelector reads auth state
+   2. Conditional rendering based on isAuthenticated
+   3. usePrivateApi() hooks automatically include token via interceptor
+
+8. Caching Strategy (RTK Query):
+   - tagTypes: Auth, Content, Approval, LiveContent
+   - Automatic refetch on tag invalidation
+   - Example: Creating content invalidates "Content" tag
+   - All users accessing that tag refetch immediately
+
+
+ASSUMPTIONS
+================================================================================
+
+1. Backend API:
+   ✓ BASE_URL defined in NEXT_PUBLIC_API_BASE_URL environment variable
+   ✓ /login endpoint returns { accessToken, user: { role: { name }, ... } }
+   ✓ /logout endpoint accepts POST with token
+   ✓ All authenticated endpoints accept Bearer token in Authorization header
+   ✓ Endpoints support withCredentials (cookies) if session-based auth used
+   ✓ API error responses have .data.message field
+   ✓ Response interceptor (line 46+) handles token refresh/expiry
+
+2. User Authentication:
+   ✓ Two roles: "principal" and "teacher"
+   ✓ User role available in login response as user.role.name
+   ✓ Token is JWT or opaque string
+   ✓ Token stored in localStorage (not httpOnly cookies)
+   ✓ Token doesn't auto-refresh (no refresh token mechanism visible)
+   ✓ Logout endpoint clears backend session
+
+3. Frontend Architecture:
+   ✓ App Router (Next.js 13+) for routing
+   ✓ Client-side rendering for authenticated pages
+   ✓ "use client" directive needed for interactive components
+   ✓ SSR-safe token access (checks typeof window)
+   ✓ Navbar is global and visible on all pages
+
+4. User Experience:
+   ✓ Login required for /principal/* and /teacher/* routes
+   ✓ Logging out redirects to /live page
+   ✓ User can see their role/email in navbar dropdown
+   ✓ Principal and teacher have separate dashboards
+   ✓ FormData uploads supported (multipart/form-data)
+
+5. Security Considerations:
+   ⚠ Token stored in localStorage (XSS vulnerable)
+   ⚠ No CSRF protection visible
+   ⚠ No refresh token mechanism (token expiry requires re-login)
+   ⚠ No httpOnly cookies (token accessible to JavaScript)
+   ⚠ Route protection relies on client-side checks only
+   ⚠ Suggestion: Implement middleware for server-side route guards
+
+6. Development Setup:
+   ✓ Environment variables managed via .env.local (Next.js standard)
+   ✓ React Compiler enabled (next.config.mjs)
+   ✓ Remote images from cloudinary.com allowed
+   ✓ ESLint configured (eslint.config.mjs)
+
+7. Current Limitations:
+   ✓ No middleware-based route protection
+   ✓ No token refresh mechanism visible
+   ✓ Auth state lost on hard refresh (relies on localStorage)
+   ✓ No loading states for navigation
+   ✓ Role-based UI rendering not implemented in components
+   ✓ Protected endpoints assume valid token exists
+
+8. Component Library:
+   ✓ shadcn/ui components available (Button, Card, Input, Dialog, etc.)
+   ✓ Tailwind CSS for styling
+   ✓ Icons from lucide-react
+   ✓ Form validation with Zod schema
+   ✓ Toast notifications via Sonner
+
+================================================================================
+NEXT STEPS FOR COMPLETE IMPLEMENTATION
+================================================================================
+
+1. Add middleware (src/middleware.js) to protect routes
+2. Implement proper token refresh mechanism
+3. Add loading states during authentication
+4. Create reusable ProtectedRoute component
+5. Implement role-based UI components
+6. Add proper error boundaries
+7. Configure ESLint rules for consistency
+8. Add unit tests for auth flow
+9. Implement proper session timeout
+10. Consider moving token to httpOnly cookies (backend required)
+
+================================================================================
