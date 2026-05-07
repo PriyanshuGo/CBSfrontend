@@ -22,6 +22,18 @@ export const privateAxios = axios.create({
     withCredentials: true,
 });
 
+// Request interceptor for both to handle FormData correctly
+const handleFormData = (config) => {
+    if (config.data instanceof FormData) {
+        // Remove Content-Type header so browser/axios can set it with boundary
+        delete config.headers["Content-Type"];
+    }
+    return config;
+};
+
+publicAxios.interceptors.request.use(handleFormData);
+privateAxios.interceptors.request.use(handleFormData);
+
 privateAxios.interceptors.request.use(
     (config) => {
         const token = getAccessToken();
