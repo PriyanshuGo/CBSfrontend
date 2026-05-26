@@ -27,6 +27,15 @@ const credentials = [
   },
 ];
 
+const handleCopy = (item) => {
+  const data = JSON.stringify({
+    email: item.email,
+    password: item.password,
+  });
+
+  navigator.clipboard.writeText(data);
+};
+
 export default function LivePage() {
 
     const {
