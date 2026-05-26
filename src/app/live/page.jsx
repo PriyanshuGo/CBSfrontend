@@ -96,6 +96,19 @@ export default function LivePage() {
 
                 ))}
 
+                <div>
+                 teacher login  cred
+  "email": "rahul@yopmail.com",
+  "password": "123456"
+
+                    
+ principal login cred
+  "email": "golu@yopmail.com",
+  "password": "123456"
+
+
+                </div>
+
             </div>
 
         </div>
