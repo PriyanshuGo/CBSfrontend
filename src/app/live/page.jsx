@@ -124,7 +124,7 @@ export default function LivePage() {
               {item.role} Login
             </h3>
 
-<button
+ <button
   onClick={() => handleCopy(item)}
   className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100 transition"
 >
