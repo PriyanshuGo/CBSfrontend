@@ -27,17 +27,24 @@ const credentials = [
   },
 ];
 
-const handleCopy = (item) => {
+const handleCopy = async (item) => {
   const data = JSON.stringify({
     email: item.email,
     password: item.password,
   });
 
-  navigator.clipboard.writeText(data);
+  await navigator.clipboard.writeText(data);
+
+  setCopiedRole(item.role);
+
+  setTimeout(() => {
+    setCopiedRole("");
+  }, 2000);
 };
 
 export default function LivePage() {
 
+    const [copiedRole, setCopiedRole] = useState("");
     const {
         data,
         isLoading,
@@ -64,13 +71,14 @@ export default function LivePage() {
               {item.role} Login
             </h3>
 
-            <button
-              onClick={() => handleCopy(item)}
-              className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100"
-            >
-              <Copy size={16} />
-              Copy
-            </button>
+<button
+  onClick={() => handleCopy(item)}
+  className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100 transition"
+>
+  <Copy size={16} />
+
+  {copiedRole === item.role ? "Copied!" : "Copy"}
+</button>
           </div>
 
           <div className="space-y-2 text-sm">
@@ -116,13 +124,14 @@ export default function LivePage() {
               {item.role} Login
             </h3>
 
-            <button
-              onClick={() => handleCopy(item)}
-              className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100"
-            >
-              <Copy size={16} />
-              Copy
-            </button>
+<button
+  onClick={() => handleCopy(item)}
+  className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100 transition"
+>
+  <Copy size={16} />
+
+  {copiedRole === item.role ? "Copied!" : "Copy"}
+</button>
           </div>
 
           <div className="space-y-2 text-sm">
@@ -157,13 +166,14 @@ export default function LivePage() {
               {item.role} Login
             </h3>
 
-            <button
-              onClick={() => handleCopy(item)}
-              className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100"
-            >
-              <Copy size={16} />
-              Copy
-            </button>
+<button
+  onClick={() => handleCopy(item)}
+  className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100 transition"
+>
+  <Copy size={16} />
+
+  {copiedRole === item.role ? "Copied!" : "Copy"}
+</button>
           </div>
 
           <div className="space-y-2 text-sm">
