@@ -37,6 +37,22 @@ export default function LoginPage() {
         }));
     };
 
+    const handlePaste = async (e) => {
+  e.preventDefault();
+
+  try {
+    const text = e.clipboardData.getData("text");
+    const data = JSON.parse(text);
+
+    setFormData({
+      email: data.email || "",
+      password: data.password || "",
+    });
+  } catch (error) {
+    console.log("Invalid clipboard data");
+  }
+};
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -108,6 +124,7 @@ export default function LoginPage() {
                             placeholder="Enter email"
                             value={formData.email}
                             onChange={handleChange}
+                            onPaste={handlePaste}
                         />
 
                         <div className="relative">
@@ -117,6 +134,7 @@ export default function LoginPage() {
                                 placeholder="Enter password"
                                 value={formData.password}
                                 onChange={handleChange}
+                                onPaste={handlePaste}
                             />
                             <button
                                 type="button"
