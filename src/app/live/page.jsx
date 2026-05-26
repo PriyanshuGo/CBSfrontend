@@ -27,7 +27,20 @@ const credentials = [
   },
 ];
 
-const handleCopy = async (item) => {
+
+
+export default function LivePage() {
+
+    const [copiedRole, setCopiedRole] = useState("");
+    const {
+        data,
+        isLoading,
+        isError,
+    } = useGetLiveContentQuery(TEACHER_ID);
+
+    const liveContent = data?.data || [];
+
+    const handleCopy = async (item) => {
   const data = JSON.stringify({
     email: item.email,
     password: item.password,
@@ -41,17 +54,6 @@ const handleCopy = async (item) => {
     setCopiedRole("");
   }, 2000);
 };
-
-export default function LivePage() {
-
-    const [copiedRole, setCopiedRole] = useState("");
-    const {
-        data,
-        isLoading,
-        isError,
-    } = useGetLiveContentQuery(TEACHER_ID);
-
-    const liveContent = data?.data || [];
 
     if (isLoading) {
         return (
