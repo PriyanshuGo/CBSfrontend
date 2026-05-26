@@ -49,7 +49,44 @@ export default function LivePage() {
     if (isLoading) {
         return (
             <div className="p-10">
+               <h1>
                 Loading live content...
+               </h1>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+      {credentials.map((item) => (
+        <div
+          key={item.role}
+          className="rounded-2xl border bg-white p-5 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">
+              {item.role} Login
+            </h3>
+
+            <button
+              onClick={() => handleCopy(item)}
+              className="flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-100"
+            >
+              <Copy size={16} />
+              Copy
+            </button>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-medium">Email:</span>{" "}
+              {item.email}
+            </p>
+
+            <p>
+              <span className="font-medium">Password:</span>{" "}
+              {item.password}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
             </div>
         );
     }
