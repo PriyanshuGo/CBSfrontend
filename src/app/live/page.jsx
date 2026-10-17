@@ -27,60 +27,181 @@ const credentials = [
   },
 ];
 
-/* ── Reusable credential card (UI only, no logic change) ── */
-function CredentialCard({ item, copiedRole, onCopy }) {
-  const isCopied = copiedRole === item.role;
+/* ── Robust Cross-Device Clipboard Copy Engine ── */
+async function copyTextToClipboard(text) {
+  if (!text) return false;
+
+  // Method 1: Synchronous execCommand immediately within user gesture
+  // Critical for mobile Safari/Chrome, HTTP local network testing, and in-app browsers
+  let syncSuccess = false;
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    // Prevent iOS zoom and viewport shift
+    textArea.style.fontSize = "16px";
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.width = "2em";
+    textArea.style.height = "2em";
+    textArea.style.padding = "0";
+    textArea.style.border = "none";
+    textArea.style.outline = "none";
+    textArea.style.boxShadow = "none";
+    textArea.style.background = "transparent";
+    textArea.style.opacity = "0.01";
+    textArea.style.zIndex = "99999";
+    // Avoid readonly on iOS WebKit
+    textArea.contentEditable = "true";
+    textArea.readOnly = false;
+
+    document.body.appendChild(textArea);
+    textArea.focus({ preventScroll: true });
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+
+    syncSuccess = document.execCommand("copy");
+    document.body.removeChild(textArea);
+  } catch {
+    syncSuccess = false;
+  }
+
+  if (syncSuccess) return true;
+
+  // Method 2: Modern Async Clipboard API (for secure HTTPS contexts)
+  if (typeof navigator !== "undefined" && navigator?.clipboard?.writeText && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to Method 3
+    }
+  }
+
+  // Method 3: DOM Range selection fallback for strict WebKit contexts
+  try {
+    const span = document.createElement("span");
+    span.textContent = text;
+    span.style.fontSize = "16px";
+    span.style.position = "fixed";
+    span.style.top = "0";
+    span.style.left = "0";
+    span.style.opacity = "0.01";
+    document.body.appendChild(span);
+
+    const range = document.createRange();
+    range.selectNode(span);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    const rangeSuccess = document.execCommand("copy");
+    selection.removeAllRanges();
+    document.body.removeChild(span);
+    if (rangeSuccess) return true;
+  } catch {
+    // All methods attempted
+  }
+
+  return false;
+}
+
+/* ── Reusable credential card (Fully responsive across all screen sizes) ── */
+function CredentialCard({ item, copiedField, onCopy }) {
   const isTeacher = item.role === "Teacher";
+  const isEmailCopied = copiedField === `${item.role}-email`;
+  const isPasswordCopied = copiedField === `${item.role}-password`;
 
   return (
     <div
-      className={`relative rounded-2xl border p-5 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${isTeacher
-        ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100"
-        : "bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100"
+      className={`relative rounded-2xl border p-4 sm:p-5 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${isTeacher
+        ? "bg-gradient-to-br from-blue-50/90 to-indigo-50/90 border-blue-100"
+        : "bg-gradient-to-br from-violet-50/90 to-purple-50/90 border-violet-100"
         }`}
     >
-      {/* Decorative blob */}
+      {/* Decorative background blob */}
       <div
-        className={`absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-10 `}
+        className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10 pointer-events-none"
       />
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      {/* Header with Title and Primary Copy Button */}
+      <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div
-            className={`p-2 rounded-lg ${isTeacher
+            className={`p-2 rounded-xl shrink-0 ${isTeacher
               ? "bg-blue-100 text-blue-600"
               : "bg-purple-100 text-purple-600"
               }`}
           >
-            {isTeacher ? <User size={15} /> : <GraduationCap size={15} />}
+            {isTeacher ? <User size={16} /> : <GraduationCap size={16} />}
           </div>
-          <h3 className="text-sm font-semibold text-gray-800">
+          <h3 className="text-sm font-bold text-gray-800 truncate">
             {item.role} Login
           </h3>
         </div>
 
         <button
-          onClick={() => onCopy(item)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${isCopied
-            ? "bg-green-100 text-green-700 border border-green-200"
+          type="button"
+          onClick={() => onCopy(item.email, `${item.role}-email`, `${item.role} Email`)}
+          style={{ touchAction: "manipulation" }}
+          className={`flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold shrink-0 min-h-[42px] transition-all duration-200 active:scale-95 cursor-pointer shadow-xs ${isEmailCopied
+            ? "bg-green-600 text-white border border-green-600 shadow-green-200"
             : isTeacher
-              ? "bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
-              : "bg-white text-purple-600 border border-purple-200 hover:bg-purple-50"
+              ? "bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 active:bg-blue-100"
+              : "bg-white text-purple-600 border border-purple-200 hover:bg-purple-50 active:bg-purple-100"
             }`}
         >
-          {isCopied ? <Check size={13} /> : <Copy size={13} />}
-          {isCopied ? "Copied!" : "Copy"}
+          {isEmailCopied ? <Check size={14} className="stroke-[2.5]" /> : <Copy size={14} />}
+          <span>{isEmailCopied ? "Copied!" : "Copy Email"}</span>
         </button>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
-          <span className="text-xs font-semibold text-gray-400 w-16 shrink-0">Email</span>
-          <span className="text-xs text-gray-800 truncate">{item.email}</span>
+      {/* Interactive Credentials List (Click any row to copy) */}
+      <div className="relative z-10 space-y-2">
+        {/* Email Row */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onCopy(item.email, `${item.role}-email`, `${item.role} Email`)}
+          title="Click to copy email"
+          className="flex items-center justify-between gap-2 bg-white/80 hover:bg-white active:bg-blue-50/70 rounded-xl px-3.5 py-2.5 transition-all cursor-pointer border border-black/5 hover:border-black/10 shadow-xs"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 w-16 shrink-0">Email</span>
+            <span className="text-xs text-gray-800 font-medium truncate select-all">{item.email}</span>
+          </div>
+          <div className="shrink-0 pl-1">
+            {isEmailCopied ? (
+              <span className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                <Check size={12} className="stroke-[3]" /> Copied
+              </span>
+            ) : (
+              <Copy size={13} className="text-gray-400 hover:text-blue-600" />
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
-          <span className="text-xs font-semibold text-gray-400 w-16 shrink-0">Password</span>
-          <span className="text-xs text-gray-800">{item.password}</span>
+
+        {/* Password Row */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onCopy(item.password, `${item.role}-password`, `${item.role} Password`)}
+          title="Click to copy password"
+          className="flex items-center justify-between gap-2 bg-white/80 hover:bg-white active:bg-blue-50/70 rounded-xl px-3.5 py-2.5 transition-all cursor-pointer border border-black/5 hover:border-black/10 shadow-xs"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 w-16 shrink-0">Password</span>
+            <span className="text-xs text-gray-800 font-mono font-medium truncate select-all">{item.password}</span>
+          </div>
+          <div className="shrink-0 pl-1">
+            {isPasswordCopied ? (
+              <span className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                <Check size={12} className="stroke-[3]" /> Copied
+              </span>
+            ) : (
+              <Copy size={13} className="text-gray-400 hover:text-blue-600" />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -196,7 +317,8 @@ function AppUsageGuide() {
 
 export default function LivePage() {
 
-  const [copiedRole, setCopiedRole] = useState("");
+  const [copiedField, setCopiedField] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const {
     data,
     isLoading,
@@ -205,24 +327,24 @@ export default function LivePage() {
 
   const liveContent = data?.data || [];
 
-  const handleCopy = async (item) => {
-    const data = JSON.stringify({
-      email: item.email,
-      password: item.password,
-    });
+  const handleCopy = async (textToCopy, fieldKey, label) => {
+    // Run cross-platform copy
+    await copyTextToClipboard(textToCopy);
 
-    await navigator.clipboard.writeText(data);
+    // Provide visual state feedback
+    setCopiedField(fieldKey);
+    setToastMessage(`Copied ${label}: ${textToCopy}`);
 
-    setCopiedRole(item.role);
-
+    // Auto-dismiss after 2.5 seconds
     setTimeout(() => {
-      setCopiedRole("");
-    }, 2000);
+      setCopiedField((curr) => (curr === fieldKey ? "" : curr));
+      setToastMessage((curr) => (curr.includes(textToCopy) ? "" : curr));
+    }, 2500);
   };
 
   /* ── Main view ── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/40 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/40 p-4 sm:p-6 relative">
       <div className="max-w-5xl mx-auto space-y-8">
 
         {/* Cold start wake-up banner */}
@@ -256,7 +378,7 @@ export default function LivePage() {
               <CredentialCard
                 key={item.role}
                 item={item}
-                copiedRole={copiedRole}
+                copiedField={copiedField}
                 onCopy={handleCopy}
               />
             ))}
@@ -382,6 +504,16 @@ export default function LivePage() {
         <AppUsageGuide />
 
       </div>
+
+      {/* Floating Toast Notification across all screen sizes */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-gray-900/95 text-white px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md text-xs font-medium border border-white/10 animate-in fade-in slide-in-from-bottom-5 duration-200 pointer-events-none max-w-[90vw] truncate">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-green-500/20 text-green-400 shrink-0">
+            <Check size={12} className="stroke-[3]" />
+          </span>
+          <span className="truncate">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

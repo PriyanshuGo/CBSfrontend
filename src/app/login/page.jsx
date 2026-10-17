@@ -37,21 +37,6 @@ export default function LoginPage() {
         }));
     };
 
-    const handlePaste = async (e) => {
-  e.preventDefault();
-
-  try {
-    const text = e.clipboardData.getData("text");
-    const data = JSON.parse(text);
-
-    setFormData({
-      email: data.email || "",
-      password: data.password || "",
-    });
-  } catch (error) {
-    console.log("Invalid clipboard data");
-  }
-};
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -125,7 +110,6 @@ export default function LoginPage() {
                                 placeholder="Enter email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                onPaste={handlePaste}
                                 className="rounded-xl border-gray-200 focus:border-blue-400 h-11 text-sm"
                             />
                         </div>
@@ -141,7 +125,6 @@ export default function LoginPage() {
                                     placeholder="Enter password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    onPaste={handlePaste}
                                     className="rounded-xl border-gray-200 focus:border-blue-400 h-11 pr-10 text-sm"
                                 />
                                 <button
@@ -182,6 +165,29 @@ export default function LoginPage() {
                                 "Login"
                             )}
                         </Button>
+
+                        {/* Quick-fill demo credentials for mobile convenience */}
+                        <div className="pt-3 border-t border-slate-100 mt-2">
+                            <p className="text-[11px] font-semibold text-gray-400 text-center uppercase tracking-wider mb-2">
+                                Quick Fill Demo Credentials
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ email: "rahul@yopmail.com", password: "123456" })}
+                                    className="py-2 px-3 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 active:bg-blue-200 text-blue-700 text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5 shadow-2xs"
+                                >
+                                    <span>👨‍🏫</span> Teacher
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ email: "golu@yopmail.com", password: "123456" })}
+                                    className="py-2 px-3 rounded-xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100 active:bg-purple-200 text-purple-700 text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5 shadow-2xs"
+                                >
+                                    <span>🎓</span> Principal
+                                </button>
+                            </div>
+                        </div>
 
                     </form>
 
